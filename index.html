@@ -324,80 +324,6 @@
                 현재 농기구 단계: 농민 1인당 생산량 <b id="farm-eff-text" class="text-amber-400">5</b> 식량/일
               </p>
             </div>
-            <div class="flex items-center gap-1.5 flex-wrap">
-              <button onclick="window.assignFarmer(-1)" class="bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs px-2 py-1 rounded">
-                -1명
-              </button>
-              <button onclick="window.assignFarmer(1)" class="bg-amber-600 hover:bg-amber-500 text-white text-xs px-2.5 py-1 rounded font-bold">
-                +1명
-              </button>
-              <button onclick="window.assignFarmer(5)" class="bg-amber-700 hover:bg-amber-600 text-white text-xs px-2.5 py-1 rounded font-bold">
-                +5명
-              </button>
-              <button onclick="window.assignFarmer(100)" class="bg-amber-500 hover:bg-amber-400 text-stone-950 text-xs px-2.5 py-1 rounded font-black">
-                +100명
-              </button>
-            </div>
-          </div>
-
-          <!-- Soldier Conscription -->
-          <div class="bg-stone-900 border border-stone-800 p-4 rounded-xl space-y-3">
-            <h3 class="text-xs font-bold text-red-400 flex items-center justify-between">
-              <span>⚔️ 군인 징집 (식량 3 + 철 1)</span>
-            </h3>
-            <p class="text-[10px] text-stone-400">무직 성인 또는 농민을 군인으로 전직</p>
-            <div class="flex items-center gap-1.5">
-              <button onclick="window.conscriptSoldier(1, 'unemployed')" class="bg-red-950 hover:bg-red-900 border border-red-800 text-red-200 text-[11px] py-1.5 px-2 rounded flex-1 font-bold">
-                무직→군인(+1)
-              </button>
-              <button onclick="window.conscriptSoldier(1, 'farmer')" class="bg-amber-950 hover:bg-amber-900 border border-amber-800 text-amber-200 text-[11px] py-1.5 px-2 rounded flex-1 font-bold">
-                농민→군인(+1)
-              </button>
-            </div>
-          </div>
-
-          <!-- Guard Conscription -->
-          <div class="bg-stone-900 border border-stone-800 p-4 rounded-xl space-y-3">
-            <h3 class="text-xs font-bold text-blue-400 flex items-center justify-between">
-              <span>🛡️ 호위병 증원 (군인 1 + 철 2)</span>
-            </h3>
-            <p class="text-[10px] text-stone-400">호위병 1명당 쿠데타/혁명 확률 -1%</p>
-            <div class="flex items-center gap-2">
-              <button onclick="window.promoteGuard(1)" class="bg-blue-900 hover:bg-blue-800 text-blue-100 text-xs py-1.5 px-3 rounded w-full font-bold">
-                +1명 호위병 승격
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Population Recruitment -->
-        <div class="bg-stone-900 border border-stone-800 p-4 rounded-xl space-y-3">
-          <h3 class="text-xs font-bold text-cyan-400 flex items-center justify-between">
-            <span>난민 모집 (식량 3 / 1인)</span>
-            <span class="text-[10px] text-stone-500">10일 유입 (10%는 장애인) + 5일 아동 성장</span>
-          </h3>
-          <div class="flex items-center gap-2">
-            <input type="number" id="recruit-input" value="5" min="1" class="bg-stone-950 border border-stone-800 px-3 py-1.5 rounded text-xs w-20 text-center font-mono focus:outline-none focus:border-cyan-500">
-            <button onclick="window.requestRecruit()" class="bg-cyan-700 hover:bg-cyan-600 text-stone-100 text-xs px-3 py-1.5 rounded font-bold transition flex-1">
-              인구 모집 신청
-            </button>
-          </div>
-          <div id="recruit-queue-list" class="text-[11px] text-stone-400 space-y-1 max-h-24 overflow-y-auto">
-            <!-- Queue items rendered dynamically -->
-          </div>
-        </div>
-
-        <!-- Land Field Visual Representation -->
-        <div class="bg-stone-900 border border-stone-800 p-4 rounded-xl space-y-3">
-          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-stone-800 pb-2">
-            <div>
-              <h3 class="text-xs font-bold text-amber-400 flex items-center gap-2">
-                🌾 실시간 농지 개간 타일 필드 (농민 1명 = 땅 10필지 소모)
-              </h3>
-              <p class="text-[11px] text-stone-400 mt-0.5">
-                현재 농기구 단계: 농민 1인당 생산량 <b id="farm-eff-text" class="text-amber-400">5</b> 식량/일
-              </p>
-            </div>
             <div class="flex items-center gap-2">
               <button onclick="window.assignFarmer(-1)" class="bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs px-2 py-1 rounded">
                 -1명 해제
@@ -408,6 +334,7 @@
               <button onclick="window.assignFarmer(5)" class="bg-amber-700 hover:bg-amber-600 text-white text-xs px-3 py-1 rounded font-bold">
                 +5명 배치
               </button>
+              <button onclick="window.assignFarmer(100)" class="bg-amber-500 hover:bg-amber-400 text-stone-950 text-xs px-3 py-1 rounded font-bold">+100명 배치</button>
             </div>
           </div>
 
