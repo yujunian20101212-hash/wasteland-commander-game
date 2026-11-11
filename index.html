@@ -1116,10 +1116,117 @@
       }
     ];
 
+    // Fictional dilemmas inspired by historical practices, not reenactments.
+    function completeHistoricalEvent(id, message, type = 'info') {
+      gameState.historicalEventsSeen ||= [];
+      if (!gameState.historicalEventsSeen.includes(id)) gameState.historicalEventsSeen.push(id);
+      addLog(message, type);
+    }
+    EVENT_DB.push(
+      {
+        id: 'history_propaganda', minDay: 5,
+        title: '📻 선전 방송과 권력 집중',
+        desc: '황무지의 방송국이 지도자를 무조건 찬양하는 방송을 제안합니다. 히틀러의 나치 독일에서 선전과 언론 통제는 독재 유지에 이용되었습니다. 이 사건은 그 역사에서 영감을 받은 가상 상황입니다.',
+        options: [
+          {text: '📢 선전 방송 허용 (식량 -30, 혁명 위험 +8)', action: () => {
+            if (gameState.food < 30) { alert('식량 30이 필요합니다.'); return; }
+            gameState.food -= 30; gameState.revolutionRate += 8;
+            completeHistoricalEvent('history_propaganda', '📻 선전 방송으로 비판적 의견이 억눌리자 주민들의 불신이 커졌습니다. 식량 -30, 혁명 위험 +8.', 'warning');
+          }},
+          {text: '📰 독립 언론 보호 (철 -20, 혁명 위험 -5)', action: () => {
+            if (gameState.iron < 20) { alert('철 20이 필요합니다.'); return; }
+            gameState.iron -= 20; gameState.revolutionRate = Math.max(0, gameState.revolutionRate - 5);
+            completeHistoricalEvent('history_propaganda', '📰 독립 방송국을 수리하고 주민들이 자유롭게 의견을 낼 수 있게 했습니다. 철 -20, 혁명 위험 최대 5 감소.', 'success');
+          }}
+        ]
+      },
+      {
+        id: 'history_scapegoat', minDay: 10,
+        title: '⚠️ 위기의 희생양 찾기',
+        desc: '식량 사정이 나빠지자 한 선동가가 소수 주민들에게 책임을 돌리려 합니다. 나치 정권은 유대인을 비롯한 집단을 박해하고 학살했습니다. 이 사건은 차별과 희생양 만들기의 위험을 다룬 가상 상황입니다.',
+        options: [
+          {text: '🛡️ 주민을 보호하고 차별에 대응 (식량 -40, 혁명 위험 -6)', action: () => {
+            if (gameState.food < 40) { alert('식량 40이 필요합니다.'); return; }
+            gameState.food -= 40; gameState.revolutionRate = Math.max(0, gameState.revolutionRate - 6);
+            completeHistoricalEvent('history_scapegoat', '🛡️ 위협받던 주민들을 보호하고 거짓 소문에 대응했습니다. 식량 -40, 혁명 위험 최대 6 감소.', 'success');
+          }},
+          {text: '🚫 선동을 방치 (무직 최대 5명 이탈, 혁명 위험 +12)', action: () => {
+            const lost = Math.min(5, gameState.pop.unemployed); gameState.pop.unemployed -= lost; gameState.revolutionRate += 12;
+            completeHistoricalEvent('history_scapegoat', `🚫 폭력과 차별이 확산돼 주민 ${lost}명이 떠났고 공동체의 불신이 커졌습니다. 혁명 위험 +12.`, 'danger');
+          }}
+        ]
+      },
+      {
+        id: 'history_forced_collection', minDay: 15,
+        title: '🌾 강제 식량 징발',
+        desc: '창고를 채우기 위해 관리들이 농민에게 생산물을 강제로 내놓으라고 요구합니다. 스탈린 시기 소련의 강제 집단화와 곡물 징발은 대규모 기근과 탄압의 역사와 연결되어 있습니다. 이 사건은 그 역사에서 영감을 받은 가상 상황입니다.',
+        options: [
+          {text: '⚠️ 강제 징발 (식량 +120, 농민 최대 3명 이탈, 혁명 위험 +10)', action: () => {
+            const lost = Math.min(3, gameState.pop.farmers); gameState.pop.farmers -= lost; gameState.food += 120; gameState.revolutionRate += 10;
+            completeHistoricalEvent('history_forced_collection', `🌾 강제 징발로 식량 120을 확보했지만 농민 ${lost}명이 공동체를 떠났습니다. 혁명 위험 +10.`, 'danger');
+          }},
+          {text: '🤝 농민과 협상 (철 -30, 식량 +40)', action: () => {
+            if (gameState.iron < 30) { alert('철 30이 필요합니다.'); return; }
+            gameState.iron -= 30; gameState.food += 40;
+            completeHistoricalEvent('history_forced_collection', '🤝 농기구를 지원하고 자발적으로 식량을 모았습니다. 철 -30, 식량 +40.', 'success');
+          }}
+        ]
+      },
+      {
+        id: 'history_purge', minDay: 20,
+        title: '⚖️ 숙청 명단',
+        desc: '경비대가 증거 없는 반역 혐의자 명단을 가져왔습니다. 스탈린의 대숙청 시기에는 수많은 사람이 정치적 탄압과 처형, 수용의 피해를 입었습니다. 이 사건은 허구의 상황입니다.',
+        options: [
+          {text: '⛓️ 무차별 체포 (무직 최대 4명 이탈, 혁명 위험 +15)', action: () => {
+            const lost = Math.min(4, gameState.pop.unemployed); gameState.pop.unemployed -= lost; gameState.revolutionRate += 15;
+            completeHistoricalEvent('history_purge', `⛓️ 근거 없는 체포로 주민 ${lost}명이 공동체에서 사라지고 공포와 불신이 확산됐습니다. 혁명 위험 +15.`, 'danger');
+          }},
+          {text: '⚖️ 증거 조사와 공정한 심리 (식량 -40, 혁명 위험 -4)', action: () => {
+            if (gameState.food < 40) { alert('식량 40이 필요합니다.'); return; }
+            gameState.food -= 40; gameState.revolutionRate = Math.max(0, gameState.revolutionRate - 4);
+            completeHistoricalEvent('history_purge', '⚖️ 독립적인 조사를 실시해 무고한 주민을 보호했습니다. 식량 -40, 혁명 위험 최대 4 감소.', 'success');
+          }}
+        ]
+      },
+      {
+        id: 'history_forced_labor', minDay: 25,
+        title: '⛏️ 강제 노동 제안',
+        desc: '한 관리가 반대자들을 강제로 광산에 보내자고 주장합니다. 나치 독일과 스탈린 시기 소련 모두 강제 노동 체제를 운영했습니다. 이 사건의 인물과 상황은 가상입니다.',
+        options: [
+          {text: '⛓️ 강제 노동 시행 (철 +100, 무직 최대 3명 이탈, 혁명 위험 +12)', action: () => {
+            const lost = Math.min(3, gameState.pop.unemployed); gameState.pop.unemployed -= lost; gameState.iron += 100; gameState.revolutionRate += 12;
+            completeHistoricalEvent('history_forced_labor', `⛓️ 강제 노동으로 철 100을 얻었지만 주민 ${lost}명이 이탈하고 공동체 신뢰가 무너졌습니다. 혁명 위험 +12.`, 'danger');
+          }},
+          {text: '⛏️ 안전한 자발적 노동 지원 (식량 -50, 철 +40)', action: () => {
+            if (gameState.food < 50) { alert('식량 50이 필요합니다.'); return; }
+            gameState.food -= 50; gameState.iron += 40;
+            completeHistoricalEvent('history_forced_labor', '⛏️ 노동자에게 식량과 안전 장비를 제공하고 철 40을 확보했습니다. 식량 -50.', 'success');
+          }}
+        ]
+      },
+      {
+        id: 'history_relief', minDay: 30,
+        title: '📦 숨겨진 기근 보고',
+        desc: '관리들이 지도자에게 나쁜 소식을 보고하기 두려워 식량 부족을 감췄다는 사실이 드러났습니다. 독재 체제에서 정보 은폐와 강압은 위기 대응을 어렵게 만들 수 있습니다. 황무지에서의 사건은 가상입니다.',
+        options: [
+          {text: '🍲 실태 공개와 긴급 배급 (식량 -60, 혁명 위험 -8)', action: () => {
+            if (gameState.food < 60) { alert('식량 60이 필요합니다.'); return; }
+            gameState.food -= 60; gameState.revolutionRate = Math.max(0, gameState.revolutionRate - 8);
+            completeHistoricalEvent('history_relief', '🍲 식량 실태를 공개하고 취약 주민에게 긴급 배급했습니다. 식량 -60, 혁명 위험 최대 8 감소.', 'success');
+          }},
+          {text: '🔇 보고를 묵살 (무직 최대 4명 사망, 혁명 위험 +10)', action: () => {
+            const dead = Math.min(4, gameState.pop.unemployed); gameState.pop.unemployed -= dead; gameState.revolutionRate += 10;
+            completeHistoricalEvent('history_relief', `🔇 부족 상황을 은폐해 주민 ${dead}명이 사망하고 불신이 커졌습니다. 혁명 위험 +10.`, 'danger');
+          }}
+        ]
+      }
+    );
+
     function triggerRandomEvent() {
       // Filter out Dynamite event if already used
       // Filter Merchant event if count >= 3
       let availableEvents = EVENT_DB.filter(e => {
+        if (e.minDay && (gameState.day < e.minDay || (gameState.historicalEventsSeen || []).includes(e.id))) return false;
         if (e.id === 'dynamite_event' && gameState.dynamiteUsed) return false;
         if (e.id === 'merchant' && gameState.merchantCount >= 3) return false;
         return true;
@@ -1479,3 +1586,4 @@ window.selectEventOption=function(index){if(window.turnBusy)return;window.turnBu
   </script>
 </body>
 </html>
+
