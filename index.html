@@ -148,10 +148,9 @@
     </nav>
 
     <!-- MAIN CONTENT AREA -->
-    <main class="flex-1 p-4 sm:p-6 space-y-6"><div style="display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:14px;background:#302b1d;border:1px solid #aa8845;border-radius:10px"><div><strong style="color:#f3d598">🎮 게임 진행 방법</strong><p style="font-size:12px;color:#ddd3bd;margin-top:4px">생산·군사를 조정한 뒤, 돌발 사건을 선택하면 다음 날로 진행됩니다.</p></div><button onclick="window.switchTab(4);document.getElementById('tab-content-4').scrollIntoView({behavior:'smooth'})" style="padding:11px 18px;background:#f5bc47;border:0;border-radius:6px;color:#241a08;font-weight:900;cursor:pointer">▶ 돌발 사건 · 다음 날 진행</button></div><section id="strategy-extension"></section>
+    <main class="flex-1 p-4 sm:p-6 space-y-6"><section id="tab-content-1" class="space-y-6"><div style="display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:14px;background:#302b1d;border:1px solid #aa8845;border-radius:10px"><div><strong style="color:#f3d598">🎮 게임 진행 방법</strong><p style="font-size:12px;color:#ddd3bd;margin-top:4px">생산·군사를 조정한 뒤, 돌발 사건을 선택하면 다음 날로 진행됩니다.</p></div><button onclick="window.switchTab(4);document.getElementById('tab-content-4').scrollIntoView({behavior:'smooth'})" style="padding:11px 18px;background:#f5bc47;border:0;border-radius:6px;color:#241a08;font-weight:900;cursor:pointer">▶ 돌발 사건 · 다음 날 진행</button></div><section id="strategy-extension"></section>
       
       <!-- TAB 1: 현 상황 & 서사 & 일지 -->
-      <section id="tab-content-1" class="space-y-6">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <!-- Leader Profile -->
           <div class="bg-stone-900 border border-stone-800 p-4 rounded-xl space-y-3">
@@ -623,6 +622,7 @@
       if (overlaySub) {
         if (gameState.day === 100) overlaySub.textContent = "❄️ 세기말 빙하기가 시작되었습니다...";
         else if (gameState.day === 130) overlaySub.textContent = "☀️ 빙하기가 종료되었습니다!";
+        else if (gameState.day === 200) overlaySub.textContent = "⚠️ 자원 고갈로 식량·철·석탄 생산량이 절반으로 줄어듭니다.";
         else overlaySub.textContent = "황무지 위로 새로운 날의 해가 떠오릅니다...";
       }
       if (overlay) {
@@ -656,7 +656,7 @@
 
       // 3. Mining Production & Worker Death Hazard
       if (gameState.pop.miners > 0) {
-        const yieldAmt = gameState.pop.miners * gameState.minerYield;
+        const yieldAmt = Math.floor(gameState.pop.miners * gameState.minerYield * (gameState.day >= 200 ? 0.5 : 1));
         gameState.iron += yieldAmt;
         gameState.coal += yieldAmt;
 
@@ -681,6 +681,7 @@
 
       
       if (gameState.floodDays > 0) gameState.floodDays--;
+      if (gameState.day >= 200) foodProduced = Math.floor(foodProduced * 0.5);
       gameState.food += foodProduced;
 
       // Scientists Consumption (Each consumes 10 extra food)
@@ -983,7 +984,7 @@
         options: [
           { text: '🧨 다이너마이트 도입 (광부 자원 생산량 2배, 사망 확률 증가)', action: () => {
             gameState.dynamiteUsed = true;
-            gameState.minerYield = 2;
+            gameState.minerYield = 2 + (gameState.tech?.mining ? 1 : 0);
             gameState.minerDeathProb = 0.03;
             addLog('🧨 광산에 다이너마이트 발파를 도입하여 채굴량이 2배로 늘었습니다.', 'success');
           }},
@@ -1069,14 +1070,14 @@
               gameState.pop.children -= 2;
               gameState.pop.scientists += 2;
               addLog("🧪 아동 2명이 과학자로 전직했습니다. (매일 식량 10 소모)", "success");
-            } else { alert("아동이 부족합니다!"); }
+            } else { addLog('👶 교육할 아동이 부족해 사건을 건너뜁니다.', 'info'); }
           }},
           { text: '🌾 숙련 농업 교육 (아동 2명을 농민으로 전직)', action: () => {
             if (gameState.pop.children >= 2) {
               gameState.pop.children -= 2;
               gameState.pop.farmers += 2;
               addLog("🌾 아동 2명이 숙련 농민으로 성장했습니다.", "success");
-            } else { alert("아동이 부족합니다!"); }
+            } else { addLog('👶 교육할 아동이 부족해 사건을 건너뜁니다.', 'info'); }
           }}
         ]
       },
@@ -1227,6 +1228,7 @@
       // Filter Merchant event if count >= 3
       let availableEvents = EVENT_DB.filter(e => {
         if (e.minDay && (gameState.day < e.minDay || (gameState.historicalEventsSeen || []).includes(e.id))) return false;
+        if (e.id === 'school' && gameState.pop.children < 2) return false;
         if (e.id === 'dynamite_event' && gameState.dynamiteUsed) return false;
         if (e.id === 'merchant' && gameState.merchantCount >= 3) return false;
         return true;
@@ -1291,7 +1293,7 @@
         if (blocked || !document.getElementById('gameover-modal').classList.contains('hidden')) return;
       }
       if (gameState.pendingEvents.length) { triggerSpecificEvent(gameState.pendingEvents.shift()); renderAll(); return; }
-      if (gameState.savedRandomEvent) { const id=gameState.savedRandomEvent; gameState.savedRandomEvent=null; gameState.currentEvent=EVENT_DB.find(e=>e.id===id)||null; if(gameState.currentEvent){renderAll();return;} }
+      if (gameState.savedRandomEvent) { const id=gameState.savedRandomEvent; gameState.savedRandomEvent=null; gameState.currentEvent=EVENT_DB.find(e=>e.id===id)||null; if(gameState.currentEvent && !(id==='school' && gameState.pop.children<2)){renderAll();return;} }
       nextDay();
     };
 
@@ -1503,7 +1505,7 @@ function restoreGame(data){
   if(id==='tribute_10day') triggerSpecificEvent('empire_tribute');
   else if(id==='science_30') triggerSpecificEvent('science_tech_30');
   else gameState.currentEvent=EVENT_DB.find(e=>e.id===id) || null;
-  if(!gameState.currentEvent) triggerRandomEvent();
+  if(!gameState.currentEvent || (gameState.currentEvent.id === 'school' && gameState.pop.children < 2)) triggerRandomEvent();
   document.getElementById('game-body').classList.toggle('ice-age',!!gameState.isIceAge);
   renderAll(); window.switchTab(gameState.activeTab || 1);
 }
@@ -1514,7 +1516,7 @@ window.exportSave = function(){
 window.importSave = function(input){const f=input.files[0];if(!f)return; const reader=new FileReader(); reader.onload=()=>{try{restoreGame(JSON.parse(reader.result)); saveGame(); alert('저장한 게임을 불러왔습니다.');}catch(e){alert('저장 파일을 불러올 수 없습니다.');} input.value='';}; reader.readAsText(f);};
 window.resetCampaign = function(){if(confirm('현재 저장을 지우고 새 게임을 시작할까요?')){localStorage.removeItem(SAVE_KEY);location.reload();}};
 window.construct = function(key){const b=buildings[key];if(gameState.buildings[key])return; if(gameState.iron<b.iron||gameState.food<b.food){alert('철 또는 식량이 부족합니다.');return;} gameState.iron-=b.iron;gameState.food-=b.food;gameState.buildings[key]=true;addLog(`🏗️ ${b.name} 건설 완료`, 'success');renderAll();};
-window.researchUpgrade = function(key){const t=technologies[key];if(gameState.tech[key])return;if(gameState.pop.scientists<1){alert('연구에는 과학자가 1명 이상 필요합니다.');return;}if(gameState.iron<t.iron||gameState.food<t.food){alert('철 또는 식량이 부족합니다.');return;}gameState.iron-=t.iron;gameState.food-=t.food;gameState.tech[key]=true;if(key==='agriculture')gameState.farmerEfficiency+=2;if(key==='weapons')gameState.soldierPowerMultiplier+=0.5;if(key==='mining')gameState.minerYield+=1;addLog(`🔬 ${t.name} 연구 완료`, 'success');renderAll();};
+window.researchUpgrade = function(key){const t=technologies[key];if(gameState.tech[key]){alert('이미 완료한 연구입니다. 연구는 종류별로 한 번만 할 수 있습니다.');return;}if(gameState.pop.scientists<1){alert('연구에는 과학자가 1명 이상 필요합니다.');return;}if(gameState.iron<t.iron||gameState.food<t.food){alert('철 또는 식량이 부족합니다.');return;}gameState.iron-=t.iron;gameState.food-=t.food;gameState.tech[key]=true;if(key==='agriculture')gameState.farmerEfficiency+=2;if(key==='weapons')gameState.soldierPowerMultiplier+=0.5;if(key==='mining')gameState.minerYield+=1;addLog(`🔬 ${t.name} 연구 완료`, 'success');renderAll();};
 window.makeAlliance = function(id){const n=gameState.nations.find(n=>n.id===id);if(!n||n.conquered||gameState.allies.includes(id))return;let cost=Math.ceil((100+id*75)*(gameState.tech.diplomacy?.75:1));if(gameState.food<cost){alert(`동맹에 식량 ${cost}이 필요합니다.`);return;}gameState.food-=cost;gameState.allies.push(id);addLog(`🤝 ${n.name}와 동맹 체결`, 'success');renderAll();};
 window.tradeAlly = function(){if(!gameState.allies.length){alert('먼저 동맹을 체결하세요.');return;}if(gameState.food<100){alert('식량 100이 필요합니다.');return;}gameState.food-=100;gameState.iron+=40;addLog('🤝 동맹 교역: 식량 100 → 철 40', 'success');renderAll();};
 const originalAttack=window.attackNation;
@@ -1557,21 +1559,24 @@ function landScene(){
 function renderStrategy(){
   const root=document.getElementById('strategy-extension'); if(!root)return;
   const ice=gameState.day+1>=100&&gameState.day+1<130;
-  const prod=(gameState.floodDays>0||gameState.sparrowBanActive)?0:Math.floor(gameState.pop.farmers*gameState.farmerEfficiency*(ice?(gameState.buildings.greenhouse?.3:0):1));
+  const nextDayNumber=gameState.day+1;
+  const baseProd=(gameState.floodDays>0||gameState.sparrowBanActive)?0:Math.floor(gameState.pop.farmers*gameState.farmerEfficiency*(ice?(gameState.buildings.greenhouse?.3:0):1));
+  const prod=nextDayNumber>=200?Math.floor(baseProd*.5):baseProd;
+  const miningProd=Math.floor(gameState.pop.miners*gameState.minerYield*(nextDayNumber>=200?.5:1));
   const cons=getTotalPop()+gameState.pop.scientists*10;const net=prod-cons;
   const coalNeed=ice?Math.ceil(getTotalPop()*(gameState.buildings.heater?.7:1)):0;
   const warning=net<0?`⚠️ 현재 속도라면 약 ${Math.ceil(gameState.food / -net)}일 후 식량이 부족합니다. (사건·생산 변화 제외)`:'식량 생산이 소비 이상입니다.';
   const tiles=gameState.nations.map(n=>`<button class="map-region ${n.conquered?'owned':gameState.allies.includes(n.id)?'ally':'hostile'}" onclick="document.getElementById('diplomacy-area').scrollIntoView({behavior:'smooth'})"><span>${n.conquered?'🚩':gameState.allies.includes(n.id)?'🤝':'🏴'}</span><small>${n.name}</small><b>${n.conquered?'점령':gameState.allies.includes(n.id)?'동맹':'전력 '+n.requiredPower}</b></button>`).join('');
   const built=Object.entries(buildings).map(([id,b])=>`<div class="building ${gameState.buildings[id]?'active':''}"><span>${gameState.buildings[id]?b.icon:'＋'}</span><small>${b.name}</small></div>`).join('');
   const build=Object.entries(buildings).map(([id,b])=>`<button class="action-card" onclick="construct('${id}')" ${gameState.buildings[id]?'disabled':''}><strong>${b.icon} ${b.name} ${gameState.buildings[id]?'✓':''}</strong><span>${b.desc}</span><small>철 ${b.iron} · 식량 ${b.food}</small></button>`).join('');
-  const tech=Object.entries(technologies).map(([id,t])=>`<button class="action-card" onclick="researchUpgrade('${id}')" ${gameState.tech[id]?'disabled':''}><strong>${t.icon} ${t.name} ${gameState.tech[id]?'✓':''}</strong><span>${t.desc}</span><small>철 ${t.iron} · 식량 ${t.food}</small></button>`).join('');
+  const tech=Object.entries(technologies).map(([id,t])=>`<button class="action-card" onclick="researchUpgrade('${id}')" ${gameState.tech[id]?'disabled':''}><strong>${t.icon} ${t.name} ${gameState.tech[id]?'✓ 완료 (1/1)':'(0/1)'}</strong><span>${t.desc}</span><small>철 ${t.iron} · 식량 ${t.food}</small></button>`).join('');
   const diplomacy=gameState.nations.map(n=>`<div class="nation-line"><span>${n.name} <small>${n.conquered?'점령됨':gameState.allies.includes(n.id)?'동맹':'중립'}</small></span><button onclick="makeAlliance(${n.id})" ${n.conquered||gameState.allies.includes(n.id)?'disabled':''}>동맹 · 식량 ${Math.ceil((100+n.id*75)*(gameState.tech.diplomacy?.75:1))}</button></div>`).join('');
   root.innerHTML=`<div class="strategy-title"><div><span>COMMAND CENTER / V4</span><h2>황무지 전략 지도</h2><p>영토의 상태와 거점의 변화를 한눈에 확인하세요.</p></div><div class="save-actions"><button onclick="exportSave()">↓ 저장 파일</button><label>↑ 불러오기<input type="file" accept="application/json,.json" onchange="importSave(this)"></label><button onclick="resetCampaign()">새 게임</button></div></div>
-  <p class="hint" role="status">${warning} 다음 날 난방용 석탄 ${coalNeed} · 연구까지 ${30-gameState.day%30}일</p><div class="forecast"><div><small>다음 날 식량 예상</small><strong>${net>=0?'+':''}${net}</strong><span>생산 ${prod} / 소비 ${cons}</span></div><div><small>제국 조공까지</small><strong>${10-gameState.day%10}일</strong><span>현재 기준 식량 ${getTotalPop()*5}</span></div><div><small>빙하기</small><strong>${gameState.day<100?(100-gameState.day)+'일 전':gameState.day<130?'진행 중':'종료'}</strong><span>100일 ~ 129일</span></div><div><small>군사력</small><strong>${getTotalMilitaryPower()}</strong><span>군인 ${gameState.pop.military} · 호위 ${gameState.pop.guards}</span></div></div>
+  <p class="hint" role="status">${warning} 다음 날 채굴 철·석탄 각 +${miningProd} · 난방 석탄 -${coalNeed} · 연구까지 ${30-gameState.day%30}일<br>${gameState.day>=200?"⚠️ 자원 고갈 진행 중: 식량·철·석탄 생산량 50%":"⚠️ 200일 차부터 식량·철·석탄 생산량 50%"}</p><div class="forecast"><div><small>다음 날 식량 예상</small><strong>${net>=0?'+':''}${net}</strong><span>생산 ${prod} / 소비 ${cons}</span></div><div><small>제국 조공까지</small><strong>${10-gameState.day%10}일</strong><span>현재 기준 식량 ${getTotalPop()*5}</span></div><div><small>빙하기</small><strong>${gameState.day<100?(100-gameState.day)+'일 전':gameState.day<130?'진행 중':'종료'}</strong><span>100일 ~ 129일</span></div><div><small>군사력</small><strong>${getTotalMilitaryPower()}</strong><span>군인 ${gameState.pop.military} · 호위 ${gameState.pop.guards}</span></div></div>
   ${terrainScene()}
   ${landScene()}
   <div class="map-layout"><div class="world-map"><div class="map-heading">작전 지도 <span>🚩 점령 · 🤝 동맹 · 🏴 중립</span></div><div class="region-grid">${tiles}</div><div class="army-mark">⚔️ 주둔 병력 <b>${gameState.pop.military}</b>명 &nbsp; 🛡️ 호위 ${gameState.pop.guards}명</div></div><div class="settlement"><div class="map-heading">중앙 거점 <span>건설 현황</span></div><div class="building-grid">${built}</div></div></div>
-  <div class="strategy-columns"><div><h3>🏗️ 시설 건설</h3><div class="action-grid">${build}</div></div><div><h3>🔬 연구 개발</h3><p class="hint">과학자가 1명 이상 필요합니다.</p><div class="action-grid">${tech}</div></div></div>
+  <div class="strategy-columns"><div><h3>🏗️ 시설 건설</h3><div class="action-grid">${build}</div></div><div><h3>🔬 연구 개발</h3><p class="hint">과학자 1명 이상 필요 · 각 연구는 최대 1회</p><div class="action-grid">${tech}</div></div></div>
   <details id="diplomacy-area"><summary>🤝 이웃 국가와 외교 · 동맹 ${gameState.allies.length}개</summary><p class="hint">동맹국은 공격할 수 없으며 식량과 철을 교역할 수 있습니다.</p><button class="trade" onclick="tradeAlly()">식량 100 → 철 40 교역</button><div class="diplomacy-list">${diplomacy}</div></details>`;
 }
 const oldSelect=window.selectEventOption;
@@ -1586,4 +1591,5 @@ window.selectEventOption=function(index){if(window.turnBusy)return;window.turnBu
   </script>
 </body>
 </html>
+
 
