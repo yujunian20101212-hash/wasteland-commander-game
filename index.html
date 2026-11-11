@@ -636,8 +636,8 @@
           overlay.classList.remove('opacity-100');
           overlay.classList.add('opacity-0', 'pointer-events-none');
         }
-        renderAll();
         checkSpecialTriggers();
+        renderAll();
       }, 700);
     }
 
@@ -708,7 +708,7 @@
 
       // 5. Coal Heating & Frostbite During Ice Age
       if (gameState.isIceAge) {
-        const coalNeeded = totalPop;
+        const coalNeeded = gameState.buildings.heater ? Math.ceil(totalPop * .7) : totalPop;
         if (gameState.coal >= coalNeeded) {
           gameState.coal -= coalNeeded;
         } else {
@@ -1415,8 +1415,7 @@ window.attackNation=function(id){let n=gameState.nations.find(x=>x.id===id);if(!
 const oldProcess=processTurnLogic;
 processTurnLogic=function(){
   const beforeFood=gameState.food, beforeCoal=gameState.coal, nextIce=gameState.day>=100&&gameState.day<130;
-  // Original turn consumes heat before we refund the facility's reduction.
-  if(nextIce && gameState.buildings.heater) gameState.coal+=Math.floor(getTotalPop()*.3);
+  // Heating cost is calculated directly during the turn.
   oldProcess();
   if(gameState.buildings.hospital)gameState.revolutionRate=Math.max(0,Math.round((gameState.revolutionRate-.2)*10)/10);
 };
@@ -1438,19 +1437,32 @@ function terrainScene(){
   const soldierCount=Math.min(8,Math.ceil(gameState.pop.military/10));let soldiers='';for(let i=0;i<soldierCount;i++){let x=514+(i%4)*15,y=259+Math.floor(i/4)*18;soldiers+='<g transform="translate('+x+' '+y+')"><circle cy="-6" r="4" fill="#d0ad81"/><path d="M-5 -8 Q0 -15 5 -8Z" fill="#454c35"/><path d="M-5 -2h10l2 13H-7Z" fill="#566044" stroke="#2f352b"/><path d="M-3 11v7 M3 11v7" stroke="#34382f" stroke-width="3"/></g>';}
   return '<div class="terrain-panel"><div class="terrain-heading"><div><span>YOUR SETTLEMENT</span><h3>🏕️ 황무지 거점</h3><p>점선 부지를 누르거나 아래에서 시설을 건설하세요.</p></div><div class="terrain-count">⚔️ 병력 '+gameState.pop.military+'명 <small>그림은 병력의 축약 표시</small></div></div><svg class="terrain-view" viewBox="0 0 640 380" role="img" aria-label="황무지 거점: 건설된 시설과 주둔 병력"><defs><pattern id="dust" width="36" height="34" patternUnits="userSpaceOnUse"><circle cx="4" cy="8" r="1.1" fill="#928363"/><path d="M19 21l5-2 3 2M8 28l5-1" fill="none" stroke="#a39975" opacity=".4"/></pattern></defs><rect width="640" height="380" fill="#aaa078"/><rect width="640" height="380" fill="url(#dust)"/><path d="M0 55 Q125 20 225 70 T430 45 T640 40 V0 H0Z" fill="#827b5c"/><path d="M0 320 Q160 275 270 325 T500 306 T640 325 V380 H0Z" fill="#817b5b"/><path d="M0 180 Q150 180 260 167 T640 165 M313 0 Q323 125 313 207 T310 380" fill="none" stroke="#d2c39b" stroke-width="34" opacity=".68"/><path d="M0 180 Q150 180 260 167 T640 165 M313 0 Q323 125 313 207 T310 380" fill="none" stroke="#ad9b77" stroke-width="2" stroke-dasharray="8 8"/><path d="M30 265 l12 -13 12 13 -8 12 -15 -2Z M70 292 l11 -10 12 12 -4 7 -17 1Z M540 75 l16 -15 17 14 -8 10 -20 1Z" fill="#79765f" stroke="#665d4d" stroke-width="2"/><g fill="#6f8151"><circle cx="68" cy="76" r="11"/><circle cx="84" cy="69" r="8"/><circle cx="52" cy="84" r="7"/><circle cx="585" cy="320" r="10"/><circle cx="605" cy="307" r="8"/></g><g fill="#85774f" stroke="#766846" stroke-width="2"><path d="M40 206h88v50H40z"/><path d="M47 213h74M47 221h74M47 229h74M47 237h74M47 245h74"/></g><text x="84" y="275" text-anchor="middle" class="terrain-label">농지 · 농민 '+gameState.pop.farmers+'명</text><g transform="translate(316 157)"><ellipse cy="27" rx="42" ry="20" fill="#82755d"/><path d="M-26 2L0 -15 26 2v30h-52z" fill="#a2865e" stroke="#413b2d" stroke-width="3"/><path d="M-32 2L0 -24 32 2l-4 5L0 -13 -28 7Z" fill="#735344"/><path d="M-6 32v-19H7v19" fill="#514536"/><text x="0" y="50" text-anchor="middle" class="terrain-label">지휘소</text></g>'+structures+'<ellipse cx="540" cy="287" rx="60" ry="28" fill="#6d7556" opacity=".55"/>'+soldiers+'<text x="550" y="323" text-anchor="middle" class="terrain-label">주둔 병력 '+gameState.pop.military+'명</text></svg></div>';
 }
+function landScene(){
+  const land=Math.max(0,gameState.land), farm=Math.min(land,gameState.pop.farmers*10), blocks=48;
+  const farmBlocks=land?Math.round(blocks*farm/land):0;
+  let tiles='';
+  for(let i=0;i<blocks;i++){
+    const x=20+(i%8)*73, y=18+Math.floor(i/8)*40, cultivated=i<farmBlocks;
+    tiles+=`<g><rect x="${x}" y="${y}" width="67" height="34" rx="4" fill="${cultivated?'#827246':'#9a8c6d'}" stroke="${cultivated?'#c2ab69':'#74664d'}"/><text x="${x+33}" y="${y+23}" text-anchor="middle" font-size="17">${cultivated?'🌾':'·'}</text></g>`;
+  }
+  return `<div class="terrain-panel"><div class="terrain-heading"><div><span>LAND OVERVIEW</span><h3>🌾 영토와 농지</h3><p>아래 지도는 전체 땅의 경작 비율을 축약해서 보여줍니다. 농민 1명당 10필지를 사용합니다.</p></div><div class="terrain-count">총 ${land.toLocaleString()}필지 <small>경작 ${farm.toLocaleString()} · 미경작 ${Math.max(0,land-farm).toLocaleString()}</small></div></div><svg class="terrain-view" viewBox="0 0 620 270" role="img" aria-label="전체 ${land}필지 중 경작지 ${farm}필지"><rect width="620" height="270" fill="#555b43"/>${tiles}</svg></div>`;
+}
 function renderStrategy(){
   const root=document.getElementById('strategy-extension'); if(!root)return;
   const ice=gameState.day+1>=100&&gameState.day+1<130;
   const prod=(gameState.floodDays>0||gameState.sparrowBanActive)?0:Math.floor(gameState.pop.farmers*gameState.farmerEfficiency*(ice?(gameState.buildings.greenhouse?.3:0):1));
   const cons=getTotalPop()+gameState.pop.scientists*10;const net=prod-cons;
+  const coalNeed=ice?Math.ceil(getTotalPop()*(gameState.buildings.heater?.7:1)):0;
+  const warning=net<0?`⚠️ 현재 속도라면 약 ${Math.ceil(gameState.food / -net)}일 후 식량이 부족합니다. (사건·생산 변화 제외)`:'식량 생산이 소비 이상입니다.';
   const tiles=gameState.nations.map(n=>`<button class="map-region ${n.conquered?'owned':gameState.allies.includes(n.id)?'ally':'hostile'}" onclick="document.getElementById('diplomacy-area').scrollIntoView({behavior:'smooth'})"><span>${n.conquered?'🚩':gameState.allies.includes(n.id)?'🤝':'🏴'}</span><small>${n.name}</small><b>${n.conquered?'점령':gameState.allies.includes(n.id)?'동맹':'전력 '+n.requiredPower}</b></button>`).join('');
   const built=Object.entries(buildings).map(([id,b])=>`<div class="building ${gameState.buildings[id]?'active':''}"><span>${gameState.buildings[id]?b.icon:'＋'}</span><small>${b.name}</small></div>`).join('');
   const build=Object.entries(buildings).map(([id,b])=>`<button class="action-card" onclick="construct('${id}')" ${gameState.buildings[id]?'disabled':''}><strong>${b.icon} ${b.name} ${gameState.buildings[id]?'✓':''}</strong><span>${b.desc}</span><small>철 ${b.iron} · 식량 ${b.food}</small></button>`).join('');
   const tech=Object.entries(technologies).map(([id,t])=>`<button class="action-card" onclick="researchUpgrade('${id}')" ${gameState.tech[id]?'disabled':''}><strong>${t.icon} ${t.name} ${gameState.tech[id]?'✓':''}</strong><span>${t.desc}</span><small>철 ${t.iron} · 식량 ${t.food}</small></button>`).join('');
   const diplomacy=gameState.nations.map(n=>`<div class="nation-line"><span>${n.name} <small>${n.conquered?'점령됨':gameState.allies.includes(n.id)?'동맹':'중립'}</small></span><button onclick="makeAlliance(${n.id})" ${n.conquered||gameState.allies.includes(n.id)?'disabled':''}>동맹 · 식량 ${Math.ceil((100+n.id*75)*(gameState.tech.diplomacy?.75:1))}</button></div>`).join('');
   root.innerHTML=`<div class="strategy-title"><div><span>COMMAND CENTER / V4</span><h2>황무지 전략 지도</h2><p>영토의 상태와 거점의 변화를 한눈에 확인하세요.</p></div><div class="save-actions"><button onclick="exportSave()">↓ 저장 파일</button><label>↑ 불러오기<input type="file" accept="application/json,.json" onchange="importSave(this)"></label><button onclick="resetCampaign()">새 게임</button></div></div>
-  <div class="forecast"><div><small>다음 날 식량 예상</small><strong>${net>=0?'+':''}${net}</strong><span>생산 ${prod} / 소비 ${cons}</span></div><div><small>제국 조공까지</small><strong>${10-gameState.day%10}일</strong><span>현재 기준 식량 ${getTotalPop()*5}</span></div><div><small>빙하기</small><strong>${gameState.day<100?(100-gameState.day)+'일 전':gameState.day<130?'진행 중':'종료'}</strong><span>100일 ~ 129일</span></div><div><small>군사력</small><strong>${getTotalMilitaryPower()}</strong><span>군인 ${gameState.pop.military} · 호위 ${gameState.pop.guards}</span></div></div>
+  <p class="hint" role="status">${warning} 다음 날 난방용 석탄 ${coalNeed} · 연구까지 ${30-gameState.day%30}일</p><div class="forecast"><div><small>다음 날 식량 예상</small><strong>${net>=0?'+':''}${net}</strong><span>생산 ${prod} / 소비 ${cons}</span></div><div><small>제국 조공까지</small><strong>${10-gameState.day%10}일</strong><span>현재 기준 식량 ${getTotalPop()*5}</span></div><div><small>빙하기</small><strong>${gameState.day<100?(100-gameState.day)+'일 전':gameState.day<130?'진행 중':'종료'}</strong><span>100일 ~ 129일</span></div><div><small>군사력</small><strong>${getTotalMilitaryPower()}</strong><span>군인 ${gameState.pop.military} · 호위 ${gameState.pop.guards}</span></div></div>
   ${terrainScene()}
+  ${landScene()}
   <div class="map-layout"><div class="world-map"><div class="map-heading">작전 지도 <span>🚩 점령 · 🤝 동맹 · 🏴 중립</span></div><div class="region-grid">${tiles}</div><div class="army-mark">⚔️ 주둔 병력 <b>${gameState.pop.military}</b>명 &nbsp; 🛡️ 호위 ${gameState.pop.guards}명</div></div><div class="settlement"><div class="map-heading">중앙 거점 <span>건설 현황</span></div><div class="building-grid">${built}</div></div></div>
   <div class="strategy-columns"><div><h3>🏗️ 시설 건설</h3><div class="action-grid">${build}</div></div><div><h3>🔬 연구 개발</h3><p class="hint">과학자가 1명 이상 필요합니다.</p><div class="action-grid">${tech}</div></div></div>
   <details id="diplomacy-area"><summary>🤝 이웃 국가와 외교 · 동맹 ${gameState.allies.length}개</summary><p class="hint">동맹국은 공격할 수 없으며 식량과 철을 교역할 수 있습니다.</p><button class="trade" onclick="tradeAlly()">식량 100 → 철 40 교역</button><div class="diplomacy-list">${diplomacy}</div></details>`;
